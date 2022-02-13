@@ -11,16 +11,21 @@ class Renderer {
     Object.assign(this, defaults, options);
     this.canvas = Canvas.createCanvas(this.width, this.height);
     this.ctx = this.canvas.getContext('2d');
-
   }
 
-  save() {
-    const out = createWriteStream(this.filename);
-    const stream = Canvas.createPNGStream();
-    //stream.pipe(out);
-    out.on('finish', () => {
-      console.log('saved');
-    })
+  async save() {
+    return await new Promise((resolve, reject) => {
+      const out = createWriteStream(this.filename);
+      const stream = new Canvas.PNGStream(this.canvas);
+      stream.pipe(out);
+      out.on('finish', () => {
+        stream.destroy();
+        resolve();
+      });
+      out.on('error', error => {
+        reject(error);
+      });
+    });
   }
 }
 

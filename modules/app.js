@@ -3,30 +3,39 @@ import {
   Intents as DiscordIntents
 } from 'discord.js';
 
+import Renderer from './renderer.js';
+
+const CHANNEL = '813884640926105620';
+
 class App {
   constructor(options) {
-    this.init().then(() => {
-      this.connect(options.token);
-    });
+    this.init().then(
+      () => this.discordClient.login(options.token)
+    );
   }
 
   async init() {
-    this.discordClient = this.initDiscordClient();
+    this.renderer = new Renderer();
+    this.discordClient = this.initClient();
   }
 
-  initDiscordClient() {
+  initClient() {
     const client = new DiscordClient({
       intents: [DiscordIntents.FLAGS.GUILDS]
     });
     client.on(
-      'ready', (...args) => console.log({ ready: args }));
+      'ready', async client => {
+        // client
+        const channel = client.channels.cache.get(CHANNEL);
+        await this.renderer.save();
+        channel.send({
+          files: ['./' + this.renderer.filename]
+        });
+      });
     client.on(
       'message', (...args) => console.log({ message: args }));
+    
     return client;
-  }
-
-  async connect(token) {
-    await this.discordClient.login(token);
   }
 }
 
