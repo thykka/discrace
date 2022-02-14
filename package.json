@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node --trace-warnings -r dotenv/config server.js",
-    "test": "ava --watch"
+    "test": "npx ava --watch"
   },
   "author": "thykka",
   "license": "MIT",
