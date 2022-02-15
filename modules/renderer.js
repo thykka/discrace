@@ -4,9 +4,10 @@ import Canvas from 'canvas'
 class Renderer {
   constructor(options) {
     const defaults = {
-      width: 420,
-      height: 420,
-      filename: '.discrace.png'
+      width: 300,
+      height: 300,
+      filename: '.discrace.png',
+      client: null,
     };
     Object.assign(this, defaults, options);
     this.canvas = Canvas.createCanvas(this.width, this.height);
@@ -25,6 +26,20 @@ class Renderer {
       out.on('error', error => {
         reject(error);
       });
+    });
+  }
+
+  draw(state) {
+    const levelWidth = state.level.reduce(
+      (max, cell) => Math.max(max, cell.x),
+      0
+    );
+    const cellWidth = this.width / (1 + levelWidth);
+    state.level.forEach((cell, index, cells) => {
+      const x = cell.x * cellWidth;
+      const y = cell.y * cellWidth;
+      this.ctx.strokeRect(x, y, cellWidth, cellWidth);
+      this.ctx.fillText(cell.char, x, y + cellWidth);
     });
   }
 }
