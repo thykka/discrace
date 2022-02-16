@@ -1,6 +1,6 @@
 import Tiles from './game-tiles.js';
 import Levels from './game-levels.js';
-
+import PlayerColors from './player-colors.js';
 export class RacingGame {
   constructor(options) {
     const defaults = {
@@ -53,35 +53,48 @@ export class RacingGame {
   handleNewMatch({ args, username, userId }) {
     // check if match is already running (on this channel?)
     if(this.matchState) {
-      return;
+      return {
+        success: false,
+        reaction: '🚫'
+      };
     }
-
-    const players = [
-      this.createPlayer({ userId, username })
-    ];
     
     // Let players load levels by name
     const level = this.levels[args];
-
     //TODO: Allow loading player maps
 
+    const players = [
+      this.createPlayer({ userId, username }, level)
+    ];
     return {
       success: true,
       reaction: '🏁',
-      matchState: this.createMatch(players, level)
+      matchState: this.createMatch(level, players)
     };
   }
 
   createMatch(
-    players,
-    level = Object.values(this.levels)[0]
+    level = Object.values(this.levels)[0],
+    players = []
   ) {
     this.matchState = { level, players };
+    this.assignSpawns(this.matchState);
     return this.matchState;
   }
 
-  createPlayer({ userId, username }) {
-    return { userId, username };
+  createPlayer({ userId, username, index }, level) {
+    const color = PlayerColors[index || 0];
+    return { userId, username, color };
+  }
+
+  assignSpawns(state) {
+    const spawnCells = state.level.filter(cell => cell.spawn);
+    if(!spawnCells.length) throw Error('No way hombre');
+    state.players.forEach((player, index) => {
+      const cell = spawnCells[index % spawnCells.length];
+      player.x = cell.x;
+      player.y = cell.y;
+    });
   }
 
   handleMovePlayer({ username, userId, args }) {
