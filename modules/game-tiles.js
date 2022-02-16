@@ -17,6 +17,8 @@ const TileCheckpoint = checkpointNumber => Object.freeze({
 
 const Tiles = {
   ' ': TileAsphalt,
+  '>': TileWall,
+  '<': TileWall,
   '#': TileWall,
   '0': TileStart,
   '1': TileStart,
