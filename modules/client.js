@@ -76,10 +76,10 @@ class GameClient {
     { message },
     { success, reaction, matchState } = {}
   ) {
-    if(!success) return;
     if(reaction) {
       message.react(reaction);
     }
+    if(!success) return;
     if(matchState) {
       this.renderer.draw(matchState);
       this.renderer.save();
