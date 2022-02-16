@@ -34,12 +34,28 @@ class Renderer {
       (max, cell) => Math.max(max, cell.x),
       0
     );
-    const cellWidth = this.width / (1 + levelWidth);
-    state.level.forEach((cell, index, cells) => {
+    const cellWidth = this.width / (levelWidth);
+    this.ctx.translate(-cellWidth/2, -cellWidth/2);
+    this.ctx.font = `${Math.floor(cellWidth)}px monospace`;
+
+    state.level.forEach((cell, index) => {
       const x = cell.x * cellWidth;
       const y = cell.y * cellWidth;
-      this.ctx.strokeRect(x, y, cellWidth, cellWidth);
-      this.ctx.fillText(cell.char, x, y + cellWidth);
+      const rect = cell.collide ? 'fillRect' : 'strokeRect';
+      this.ctx.fillStyle = '#222';
+      this.ctx[rect](x, y, cellWidth, cellWidth);
+      if(['<','>'].includes(cell.char)) {
+        const glyph = cell.char === '<' ? '↩' : '↪';
+        this.ctx.fillStyle = 'white';
+        this.ctx.fillText(glyph, x+cellWidth/4, y + cellWidth/4*3);
+      }
+    });
+    state.players.forEach((player) => {
+      console.log({player});
+      const x = player.x * cellWidth;
+      const y = player.y * cellWidth;
+      this.ctx.fillStyle = player.color || '#F0F';
+      this.ctx.fillRect(x, y, cellWidth, cellWidth);
     });
   }
 }
