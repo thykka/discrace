@@ -30,11 +30,14 @@ class Renderer {
   }
 
   draw(state) {
+    this.ctx.fillStyle = '#f0f0f0';
+    this.ctx.fillRect(0, 0, this.width, this.height);
     const levelWidth = state.level.reduce(
       (max, cell) => Math.max(max, cell.x),
       0
     );
     const cellWidth = this.width / (levelWidth);
+    this.ctx.save();
     this.ctx.translate(-cellWidth/2, -cellWidth/2);
     this.ctx.font = `${Math.floor(cellWidth)}px monospace`;
 
@@ -50,13 +53,15 @@ class Renderer {
         this.ctx.fillText(glyph, x+cellWidth/4, y + cellWidth/4*3);
       }
     });
-    state.players.forEach((player) => {
-      console.log({player});
-      const x = player.x * cellWidth;
-      const y = player.y * cellWidth;
+    state.players.forEach(player => {
+      const x = player.x * cellWidth + cellWidth/2;
+      const y = player.y * cellWidth + cellWidth/2;
       this.ctx.fillStyle = player.color || '#F0F';
-      this.ctx.fillRect(x, y, cellWidth, cellWidth);
+      this.ctx.beginPath();
+      this.ctx.arc(x, y, cellWidth/2, 0, Math.PI*2);
+      this.ctx.fill();
     });
+    this.ctx.restore();
   }
 }
 
