@@ -62,29 +62,40 @@ class GameClient {
         restWords.length ? ' arguments: ' + restWords.join(' ') : ''
       }`);
       const result = this.game.command(commandName, {
-        username,
-        userId: id,
+        user: { name: username, id },
         args: restWords
       });
       console.log({ result });
-      this.handleResult({ message }, result);
+      this.handleResult(message, result);
       return;
     }
   }
 
   handleResult(
-    { message },
-    { success, reaction, matchState } = {}
+    message,
+    { success, messageText, reply, reaction, matchState } = {}
   ) {
     if(reaction) {
       message.react(reaction);
     }
-    if(!success) return;
+    if(!success) {
+      if(messageText) {
+        return message.channel.send({
+          content: messageText
+        });
+      }
+      if(reply) {
+        return message.reply({
+          content: reply
+        });
+      }
+    }
     if(matchState) {
       this.renderer.draw(matchState);
       this.renderer.save();
       message.channel.send({
-        files: ['./' + this.renderer.filename]
+        files: ['./' + this.renderer.filename],
+        content: messageText
       });
     }
   }
