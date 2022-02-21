@@ -79,7 +79,7 @@ class GameClient {
     if(reaction) {
       message.react(reaction);
     }
-    const text = reply || messageText;
+    const text = reply || messageText || '';
     const directAt = mention ? `<@${mention}> `: '';
     const content = `${directAt}${text}`;
     if(!success) {
