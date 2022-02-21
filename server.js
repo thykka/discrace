@@ -7,5 +7,14 @@ new GameClient({
     '!race': 'newGame',
     '!help': 'showHelp',
     '!move': 'movePlayer',
+    '1': 'movePlayer',
+    '2': 'movePlayer',
+    '3': 'movePlayer',
+    '4': 'movePlayer',
+    '5': 'movePlayer',
+    '6': 'movePlayer',
+    '7': 'movePlayer',
+    '8': 'movePlayer',
+    '9': 'movePlayer',
   }
 });

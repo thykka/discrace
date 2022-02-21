@@ -51,9 +51,8 @@ class GameClient {
     if(!this.allowedChannels.includes(channelId)) return;
     const { id, username } = author;
     const [firstWord, ...restWords] = content.split(/\s+/g);
-    const commandName = this.commands[
-      firstWord.trim().toLowerCase()
-    ];
+    const prefix = firstWord.trim().toLowerCase();
+    const commandName = this.commands[prefix];
     if(!commandName) {
       console.log(`MSG:${username}> "${content}"`);
       return;
@@ -63,6 +62,7 @@ class GameClient {
       }`);
       const result = this.game.command(commandName, {
         user: { name: username, id },
+        prefix,
         args: restWords
       });
       console.log({ result });
@@ -71,31 +71,27 @@ class GameClient {
     }
   }
 
-  handleResult(
-    message,
-    { success, messageText, reply, reaction, matchState } = {}
-  ) {
+  handleResult(message, result = {}) {
+    const {
+      success, messageText, reply,
+      reaction, matchState, mention
+    } = result;
     if(reaction) {
       message.react(reaction);
     }
+    const text = reply || messageText;
+    const directAt = mention ? `<@${mention}> `: '';
+    const content = `${directAt}${text}`;
     if(!success) {
-      if(messageText) {
-        return message.channel.send({
-          content: messageText
-        });
-      }
-      if(reply) {
-        return message.reply({
-          content: reply
-        });
-      }
+      if(messageText) return message.channel.send({ content });
+      if(reply)       return message.reply({ content });
     }
     if(matchState) {
       this.renderer.draw(matchState);
       this.renderer.save();
       message.channel.send({
         files: ['./' + this.renderer.filename],
-        content: messageText
+        content
       });
     }
   }

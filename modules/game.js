@@ -14,10 +14,10 @@ export class RacingGame {
     this.levels = this.loadLevels(Levels);
   }
 
-  command(commandName, { user, args }) {
+  command(commandName, { user, prefix, args }) {
     const command = this.commands[commandName];
     if(typeof command !== 'function') return;
-    return command.call(this, { user, args });
+    return command.call(this, { prefix, user, args });
   }
   
   handleNewMatch({ args, user }) {
@@ -37,7 +37,6 @@ export class RacingGame {
       const playersHaveMoved = this.matchState.players.some(
         player => player.path.length > 1
       );
-      console.log(this.matchState.players);
       if(playersHaveMoved) {
         return {
           success: false, reaction: '🚫',
@@ -102,8 +101,7 @@ export class RacingGame {
     });
   }
 
-  // TODO: allow move number without prefix
-  handleMovePlayer({ args, user }) {
+  handleMovePlayer({ prefix, args, user }) {
     // ensure there is an existing match
     if(!this.matchState) {
       return {
@@ -131,24 +129,26 @@ export class RacingGame {
         reply: 'it\'s not your turn yet'
       };
     }
-    // arg should be a number
+    // if no moves available, the player loses
+    // TODO: remove player, check if players remain, end match...
     const player = this.matchState.players[playerIndex];
-    const moveIndex = parseInt(args) - 1;
+    if(player.moves?.length === 0) {
+      this.movePlayer({ x: 0, y: 0 });
+      return {
+        success: true,
+        matchState: this.matchState,
+        reaction: '☠'
+      };
+    }
+    // prefix or arg should be a number
+    let moveIndex = parseInt(prefix);
+    if(isNaN(moveIndex)) moveIndex = parseInt(args);
+    moveIndex -= 1;
     if(isNaN(moveIndex) || moveIndex < 0 || moveIndex > 8) {
       return {
         success: false,
         //reaction: '',
         reply: 'use !move 1-9 to move, example: `!move 6`'
-      };
-    }
-    // if no moves available, the player loses
-    // TODO: remove player, check if players remain, end match...
-    if(player.moves?.length === 0) {
-      this.movePlayer();
-      return {
-        success: true,
-        matchState: this.matchState,
-        reaction: '☠'
       };
     }
     // arg should be within allowed moves
@@ -157,7 +157,9 @@ export class RacingGame {
       return {
         success: false,
         //reaction: '',
-        reply: 'allowed moves: ' + player.moves.map((_, i) => i).join(', ')
+        reply: 'allowed moves: ' + player.moves.map(
+          ({index}) => index + 1
+        ).join(', ')
       };
     }
 
@@ -182,6 +184,12 @@ export class RacingGame {
           ))
           return { ...move, index, cellIndex };
         }
+      ).filter(
+        move => {
+          const cell = level[move.cellIndex];
+          const collides = typeof cell === 'undefined' || cell?.collide;
+          return !collides;
+        }
       );
   }
 
@@ -198,13 +206,17 @@ export class RacingGame {
     player.dy += move.y;
     player.x += player.dx;
     player.y += player.dy;
+    player.path.push([player.x, player.y]);
     // increment turn
     this.matchState.turn =
       (this.matchState.turn + 1) % this.matchState.players.length;
     // save next player's moves
-    player.moves = this.getMoves(this.getCurrentPlayer());
+    const nextPlayer = this.getCurrentPlayer();
+    player.moves = this.getMoves(nextPlayer);
     return {
       success: true,
+      messageText: ', it\'s your turn',
+      mention: nextPlayer.id,
       matchState: this.matchState
     };
   }
