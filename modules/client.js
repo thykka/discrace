@@ -50,7 +50,9 @@ class GameClient {
     const { channelId, content, author } = message;
     if(!this.allowedChannels.includes(channelId)) return;
     const { id, username } = author;
-    const [firstWord, ...restWords] = content.split(/\s+/g);
+    const { groups } = content.match(/^\s*(?<first>\S+)\s*(?<rest>.*)/s) || {}; 
+    const firstWord = groups.first;
+    const restWords = groups.rest;
     const prefix = firstWord.trim().toLowerCase();
     const commandName = this.commands[prefix];
     if(!commandName) {
@@ -58,7 +60,7 @@ class GameClient {
       return;
     } else {
       console.log(`CMD:${username}/${commandName}${
-        restWords.length ? ' arguments: ' + restWords.join(' ') : ''
+        restWords.length ? ' arguments: ' + restWords : ''
       }`);
       const result = this.game.command(commandName, {
         user: { name: username, id },
