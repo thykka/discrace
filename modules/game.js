@@ -1,6 +1,7 @@
 import Tiles, { TileStart } from './game-tiles.js';
 import Levels from './game-levels.js';
 import PlayerColors from './player-colors.js';
+import { rotateArray } from './utils.js';
 export class RacingGame {
   constructor(options) {
     const defaults = {
@@ -58,19 +59,35 @@ export class RacingGame {
     
     //TODO: Allow loading player maps
     // Let players load levels by name
-    const level = this.levels[args];
+    const foundPresetLevel = this.levels[args];
+    let level = foundPresetLevel;
+    let loadError = false;
+    try {
+      if(!level && args.length) {
+        level = this.readMap({ mapString: args });
+        if(level.error) {
+          level = Object.values(this.levels)[0];
+          loadError = level.error;
+        }
+      }
+    } catch(e) {
+      level = Object.values(this.levels)[0]; // use default
+      loadError = e.message;
+    }
 
     this.matchState = this.createMatch(user, level);
     this.assignSpawns();
 
     return {
       success: true, reaction: '🏁',
-      messageText: `${ user.name } started a new race!`,
+      messageText: `${ user.name } started a new race! ${
+        loadError ? `(Failed to load map: ${ loadError })` : ''
+      }`,
       matchState: this.matchState
     };
   }
 
-  createMatch(user, level = Object.values(this.levels)[0]) {
+  createMatch(user, level) {
     const players = [
       this.createPlayer(user, 0)
     ];
@@ -207,17 +224,46 @@ export class RacingGame {
     player.x += player.dx;
     player.y += player.dy;
     player.path.push([player.x, player.y]);
-    // increment turn
-    this.matchState.turn =
-      (this.matchState.turn + 1) % this.matchState.players.length;
+
+    return this.incrementTurn();
+  }
+
+  incrementTurn() {
+    if(!this.matchState) {
+      return {
+        success: false,
+        reply: 'No match running, weird...'
+      };
+    }
+    const state = this.matchState;
+    const activePlayers = state.players.filter(({ dead }) => !dead);
+    if(activePlayers.length === 0) {
+      setImmediate(() => delete this.matchState);
+      return {
+        success: true,
+        messageText: 'Everyone crashed, game over.',
+        matchState: this.matchState
+      };
+    }
+    const sortedActive = rotateArray(
+      activePlayers,
+      ({ index }) => index === state.turn
+    );
+    console.log({ sortedActive });
+    state.turn = sortedActive[sortedActive.length === 1 ? 0 : 1].index;
+
     // save next player's moves
     const nextPlayer = this.getCurrentPlayer();
     nextPlayer.moves = this.getMoves(nextPlayer);
+    if(!nextPlayer.moves.length) {
+      nextPlayer.dead = true;
+      return this.movePlayer({ x: 0, y: 0 }, nextPlayer);
+    }
     return {
       success: true,
       messageText: ', it\'s your turn',
       mention: nextPlayer.id,
-      matchState: this.matchState
+      matchState: state
     };
   }
 
@@ -225,20 +271,26 @@ export class RacingGame {
     return Object.fromEntries(
       Object.entries(maps)
         .map(([mapName, map]) => {
-          return [mapName, this.readMap(map)];
+          const cells = this.readMap(map);
+          return [mapName, cells];
         })
     );
   }
 
-  readMap({mapString}) {
-    if(typeof mapString !== 'string')
-      throw Error('Expected mapString, got ' + typeof mapString);
-    const rows = mapString.trim().split('\n');
-    const mapWidth = rows[0].length;
+  readMap({ mapString }) {
+    if(typeof mapString !== 'string' || mapString.length < 5) {
+      return { error: 'Expected mapString, got ' + typeof mapString };
+    }
+    const rows = mapString.replaceAll('```','').trim().split('\n');
+    const rowWidth = rows[0].length;
+    if(rowWidth !== rows.length) {
+      console.log(mapString, rowWidth, rows.length);
+      return { error: 'Map is not square' };
+    }
     return rows.flatMap((row, y) => {
       const chars = row.split('');
-      if(chars.length !== mapWidth)
-        throw Error(`Row ${y+1} is ${ chars.length } characters long, expected ${ mapWidth }`);
+      if(chars.length !== rowWidth)
+        throw Error(`Row ${y+1} is ${ chars.length } characters long, expected ${ rowWidth }`);
       return chars.map((char, x) => {
           const tile = Tiles[char];
           if(!tile) throw Error('Unknown tile character: ' + char);

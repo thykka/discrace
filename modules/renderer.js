@@ -1,5 +1,6 @@
 import { createWriteStream } from 'fs';
 import Canvas from 'canvas'
+import { rotateArray } from './utils.js';
 
 class Renderer {
   constructor(options) {
@@ -86,7 +87,10 @@ class Renderer {
       }
     });
 
-    state.players.forEach((player, playerIndex) => {
+    rotateArray(
+      state.players,
+      (player, index) => index === state.turn
+    ).forEach((player, playerIndex) => {
       ctx.fillStyle = player.color || '#F0F';
       ctx.strokeStyle = player.color || '#F0F';
       ctx.lineWidth = Math.max(1, halfWidth/6);
