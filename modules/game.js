@@ -98,6 +98,7 @@ export class RacingGame {
       player.x = cell.x;
       player.y = cell.y;
       player.path = [[cell.x, cell.y]];
+      player.moves = this.getMoves(player);
     });
   }
 
@@ -142,8 +143,7 @@ export class RacingGame {
     }
     // if no moves available, the player loses
     // TODO: remove player, check if players remain, end match...
-    const availableMoves = this.getMoves(player);
-    if(availableMoves.length === 0) {
+    if(player.moves?.length === 0) {
       this.movePlayer();
       return {
         success: true,
@@ -152,34 +152,47 @@ export class RacingGame {
       };
     }
     // arg should be within allowed moves
-    const move = availableMoves.find(move => move.index === moveIndex);
+    const move = player.moves.find(move => move.index === moveIndex);
     if(!move) {
       return {
         success: false,
         //reaction: '',
-        reply: 'allowed moves: ' + availableMoves.map((_, i) => i).join(', ')
+        reply: 'allowed moves: ' + player.moves.map((_, i) => i).join(', ')
       };
     }
 
     return this.movePlayer(move);
   }
 
-  getMoves(player) {
-    // TODO: return a list of cells the player may move into
+  // return a list of cells the player may move into
+  getMoves(player, level = this.matchState?.level) {
+    const nextX = player.x + player.dx;
+    const nextY = player.y + player.dy;
     return [
       { x: -1, y: -1 }, { x: 0, y: -1 }, { x: 1, y: -1 },
       { x: -1, y:  0 }, { x: 0, y:  0 }, { x: 1, y:  0 },
       { x: -1, y:  1 }, { x: 0, y:  1 }, { x: 1, y:  1 },
     ]
-      .filter(move => true) // TODO: should not hit walls
+      // TODO: should not hit walls
       .map(
-        (move, index) => ({ ...move, index })
+        (move, index) => {
+          const cellIndex = level.findIndex(cell => (
+            cell.x === nextX + move.x &&
+            cell.y === nextY + move.y
+          ))
+          return { ...move, index, cellIndex };
+        }
       );
+  }
+
+  getCurrentPlayer(matchState = this.matchState) {
+    if(!matchState) return null;
+    return matchState.players[matchState.turn];
   }
 
   movePlayer(
     move,
-    player = this.matchState?.players[this.matchState?.turn]
+    player = this.getCurrentPlayer()
   ) {
     player.dx += move.x;
     player.dy += move.y;
@@ -188,6 +201,8 @@ export class RacingGame {
     // increment turn
     this.matchState.turn =
       (this.matchState.turn + 1) % this.matchState.players.length;
+    // save next player's moves
+    player.moves = this.getMoves(this.getCurrentPlayer());
     return {
       success: true,
       matchState: this.matchState
