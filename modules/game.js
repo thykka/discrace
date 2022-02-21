@@ -212,7 +212,7 @@ export class RacingGame {
       (this.matchState.turn + 1) % this.matchState.players.length;
     // save next player's moves
     const nextPlayer = this.getCurrentPlayer();
-    player.moves = this.getMoves(nextPlayer);
+    nextPlayer.moves = this.getMoves(nextPlayer);
     return {
       success: true,
       messageText: ', it\'s your turn',
