@@ -5,6 +5,7 @@ new GameClient({
   allowedChannels: [process.env.CHANNEL],
   commands: {
     '!race': 'newGame',
+    '!?': 'showGame',
     '!help': 'showHelp',
     '!move': 'movePlayer',
     '1': 'movePlayer',
