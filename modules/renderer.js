@@ -1,6 +1,6 @@
 import { createWriteStream } from 'fs';
 import Canvas from 'canvas'
-import { rotateArray } from './utils.js';
+import { rotateArray, rnd } from './utils.js';
 
 class Renderer {
   constructor(options) {
@@ -18,7 +18,10 @@ class Renderer {
   async save() {
     return await new Promise((resolve, reject) => {
       const out = createWriteStream(this.filename);
-      const stream = new Canvas.PNGStream(this.canvas);
+      //const stream = new Canvas.PNGStream(this.canvas);
+      const stream = this.canvas.createPNGStream({
+        compressionLevel: 9
+      });
       stream.pipe(out);
       out.on('finish', () => {
         stream.destroy();
@@ -32,8 +35,21 @@ class Renderer {
 
   _drawWall(x, y, w, cell) {
     const { ctx } = this;
-    ctx.fillStyle = '#111';
-    ctx.fillRect(x, y, w, w);
+    const step = 1/8;
+    ctx.strokeStyle = '#111';
+    ctx.lineWidth = 2.25;
+
+    const r = () => rnd(-step*w/2, step*w/2);
+
+    for(let i = step; i < 1; i += step) {
+      const lx = Math.max(0, i * 2 - 1) * w;
+      const ly = Math.min(1, i * 2) * w;
+      ctx.beginPath();
+      ctx.moveTo(x + lx + r(), y + ly + r());
+      ctx.lineTo(x + ly + r(), y + lx + r());
+      ctx.stroke();
+    }
+    
 
     if(['<','>'].includes(cell.char)) {
       const glyph = cell.char === '<' ? '↩' : '↪';
