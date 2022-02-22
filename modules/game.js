@@ -8,7 +8,8 @@ export class RacingGame {
       client: null,
       commands: {
         'newGame': this.handleNewMatch,
-        'movePlayer': this.handleMovePlayer
+        'movePlayer': this.handleMovePlayer,
+        'showGame': this.handleShowGame
       }
     };
     Object.assign(this, defaults, options);
@@ -19,6 +20,21 @@ export class RacingGame {
     const command = this.commands[commandName];
     if(typeof command !== 'function') return;
     return command.call(this, { prefix, user, args });
+  }
+
+  handleShowGame({ args, user }) {
+    if(!this.matchState) {
+      return {
+        success: false,
+        reaction: '⁉'
+      };
+    }
+    const currentPlayer = this.getCurrentPlayer();
+    return {
+      success: true,
+      messageText: `It's <@${currentPlayer.id}>'s turn to !move`,
+      matchState: this.matchState
+    }
   }
   
   handleNewMatch({ args, user }) {
@@ -59,20 +75,24 @@ export class RacingGame {
     
     //TODO: Allow loading player maps
     // Let players load levels by name
-    const foundPresetLevel = this.levels[args];
-    let level = foundPresetLevel;
+    let level = Object.values(this.levels)[0]; // use default
     let loadError = false;
-    try {
-      if(!level && args.length) {
-        level = this.readMap({ mapString: args });
-        if(level.error) {
-          level = Object.values(this.levels)[0];
+
+    const foundPresetLevel = this.levels[args];
+    if(foundPresetLevel) {
+      level = foundPresetLevel;
+    } else if(args.length) {
+      console.log({ args, levelNames: Object.keys(this.levels) })
+      try {
+        const customMap = this.readMap({ mapString: args });
+        if(customMap.error) {
           loadError = level.error;
+        } else {
+          level = customMap;
         }
+      } catch(e) {
+        loadError = e.message;
       }
-    } catch(e) {
-      level = Object.values(this.levels)[0]; // use default
-      loadError = e.message;
     }
 
     this.matchState = this.createMatch(user, level);
