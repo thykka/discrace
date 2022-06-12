@@ -36,6 +36,8 @@ class Renderer {
   _drawWall(x, y, w, cell) {
     const { ctx } = this;
     const step = 1/8;
+    ctx.fillStyle = '#0003';
+    ctx.fillRect(x, y, w, w);
     ctx.strokeStyle = '#111';
     ctx.lineWidth = 2.25;
 
@@ -53,8 +55,34 @@ class Renderer {
 
     if(['<','>'].includes(cell.char)) {
       const glyph = cell.char === '<' ? '↩' : '↪';
-      ctx.fillStyle = '#AAA';
+      ctx.fillStyle = '#F82';
       ctx.fillText(glyph, x + w/4, y + w/4*3);
+    }
+  }
+
+  _drawSpawn(x, y, w, cell) {
+    const { ctx } = this;
+    const gridWidth = Math.ceil(w / 4);
+    ctx.fillStyle = 'hsla(0, 0%, 0%, 0.3)';
+    //ctx.fillRect(x, y, w, w);
+    for(let yo = 0; yo < w; yo += gridWidth * 2) {
+      for(let xo = 0; xo < w; xo += gridWidth) {
+        const ys = Math.round(xo/2) % gridWidth === 0 ? 0 : gridWidth;
+        ctx.fillRect(x + xo, y + yo + ys, gridWidth, gridWidth);
+      }
+    }
+  }
+
+  _drawCheckpoint(x, y, w, cell) {
+    const { ctx } = this;
+    const gridWidth = Math.ceil(w / 4);
+    ctx.fillStyle = `hsla(${ (cell.checkpointNumber * 137.5) % 360 }, 80%, 40%, 0.3)`;
+    console.log(ctx.fillStyle);
+    for(let yo = 0; yo < w; yo += gridWidth * 2) {
+      for(let xo = 0; xo < w; xo += gridWidth) {
+        const ys = Math.round(xo/2) % gridWidth === 0 ? 0 : gridWidth;
+        ctx.fillRect(x + xo, y + yo + ys, gridWidth, gridWidth);
+      }
     }
   }
 
@@ -66,7 +94,7 @@ class Renderer {
     ctx.lineWidth = 0.5;
     ctx.strokeStyle = '#111';
     for(let v = 0; v < levelWidth; v+=1) {
-      const pos = v * cellWidth;
+      const pos = v * cellWidth + cellWidth/2;
       ctx.beginPath();
       ctx.moveTo(0, pos)
       ctx.lineTo(width, pos);
@@ -91,13 +119,17 @@ class Renderer {
     this._drawGrid(levelWidth, cellWidth);
     ctx.save();
     ctx.translate(-halfWidth, -halfWidth);
-    ctx.font = `${Math.floor(cellWidth)}px monospace`;
+    ctx.font = `${Math.floor(cellWidth * 0.7)}px monospace`;
 
     state.level.forEach((cell, index) => {
       const x = cell.x * cellWidth;
       const y = cell.y * cellWidth;
       if(cell.collide) {
         this._drawWall(x, y, cellWidth, cell);
+      } else if(cell.spawn) {
+        this._drawSpawn(x, y, cellWidth, cell);
+      } else if(cell.checkpoint) {
+        this._drawCheckpoint(x, y, cellWidth, cell);
       } else {
         this._drawRoad(x, y, cellWidth, cell);
       }
@@ -132,7 +164,7 @@ class Renderer {
       const ply = player.y * cellWidth + halfWidth;
       ctx.beginPath();
       ctx.arc(plx, ply, halfWidth, 0, Math.PI*2);
-      if(state.turn !== playerIndex) {
+      if(state.turn !== playerIndex || state.won) {
         // idle player
         ctx.stroke();
       } else {

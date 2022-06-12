@@ -63,7 +63,7 @@ export class RacingGame {
 
       // add player to match
       this.matchState.players.push(
-        this.createPlayer(user, this.matchState.players.length)
+        this.createPlayer(user, this.matchState.players.length, this.matchState.level)
       );
       this.assignSpawns();
       return {
@@ -82,7 +82,6 @@ export class RacingGame {
     if(foundPresetLevel) {
       level = foundPresetLevel;
     } else if(args.length) {
-      console.log({ args, levelNames: Object.keys(this.levels) })
       try {
         const customMap = this.readMap({ mapString: args });
         if(customMap.error) {
@@ -100,7 +99,7 @@ export class RacingGame {
 
     return {
       success: true, reaction: '🏁',
-      messageText: `${ user.name } started a new race! ${
+      messageText: `${ user.name } started a new race! Type \`!race\` to join. ${
         loadError ? `(Failed to load map: ${ loadError })` : ''
       }`,
       matchState: this.matchState
@@ -109,17 +108,23 @@ export class RacingGame {
 
   createMatch(user, level) {
     const players = [
-      this.createPlayer(user, 0)
+      this.createPlayer(user, 0, level)
     ];
-    const matchState = { level, players, turn: 0 };
+    const matchState = { level, players, turn: 0, won: false };
     return matchState;
   }
 
-  createPlayer(user, index = 0) {
+  createPlayer(user, index = 0, level) {
+    const passedCheckpoints = Object.fromEntries(
+      level
+        .filter(cell => cell.checkpoint)
+        .map(cell => ([cell.checkpointNumber, false]))
+    );
     return {
+      index,
+      passedCheckpoints,
       ...user,
       color: PlayerColors[index % PlayerColors.length] || '#F0F',
-      index,
       path: [],
       x: 0, y: 0,
       dx: 0, dy: 0
@@ -212,7 +217,7 @@ export class RacingGame {
       { x: -1, y:  0 }, { x: 0, y:  0 }, { x: 1, y:  0 },
       { x: -1, y:  1 }, { x: 0, y:  1 }, { x: 1, y:  1 },
     ]
-      // TODO: should not hit walls
+      // TODO: should not hit walls along the path
       .map(
         (move, index) => {
           const cellIndex = level.findIndex(cell => (
@@ -256,11 +261,47 @@ export class RacingGame {
       };
     }
     const state = this.matchState;
+
+    // Did player cross the finish line?
+    // TODO: player must have passed all checkpoints first
+    const finishTiles = state.level.filter(cell => cell.spawn);
+    const player = this.getCurrentPlayer(state);
+    const minX = Math.min(player.x, player.x - player.dx);
+    const maxX = Math.max(player.x, player.x - player.dx);
+    const minY = Math.min(player.y, player.y - player.dy);
+    const maxY = Math.max(player.y, player.y - player.dy);
+    const passedCells = state.level.filter(cell => (
+      // this is not right, needs bresenham?
+      cell.x >= minX && cell.x <= maxX &&
+      cell.y >= minY && cell.y <= maxY
+    ));
+    // const hitCollideCells = passedCells.filter(cell => cell.collide);
+    const hitCheckpointCells = passedCells.filter(cell => cell.checkpoint);
+    hitCheckpointCells.forEach(cell => {
+      player.passedCheckpoints[cell.checkpointNumber] = true;
+    });
+    const allCheckpointsVisited = Object.values(player.passedCheckpoints).every(checkpoint => checkpoint);
+    if(allCheckpointsVisited) {
+      const hitSpawnCells = passedCells.filter(cell => cell.spawn);
+      if(hitSpawnCells.length) {
+        this.matchState.won = true;
+        setImmediate(() => delete this.matchState);
+        return {
+          success: true,
+          messageText: ' won the game!',
+          mention: player.id,
+          matchState: this.matchState
+        };
+      }
+    }
+
+    // Have all players crashed?
     const activePlayers = state.players.filter(({ dead }) => !dead);
     if(activePlayers.length === 0) {
       setImmediate(() => delete this.matchState);
       return {
         success: true,
+        reaction: '☠',
         messageText: 'Everyone crashed, game over.',
         matchState: this.matchState
       };
@@ -269,7 +310,6 @@ export class RacingGame {
       activePlayers,
       ({ index }) => index === state.turn
     );
-    console.log({ sortedActive });
     state.turn = sortedActive[sortedActive.length === 1 ? 0 : 1].index;
 
     // save next player's moves

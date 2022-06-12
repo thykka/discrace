@@ -91,10 +91,13 @@ class GameClient {
     if(matchState) {
       this.renderer.draw(matchState);
       this.renderer.save();
-      message.channel.send({
-        files: ['./' + this.renderer.filename],
-        content
-      });
+      // quick fix for file not having been saved yet
+      setTimeout(() => {
+        message.channel.send({
+          files: ['./' + this.renderer.filename],
+          content
+        });
+      }, 500);
     }
   }
 }
