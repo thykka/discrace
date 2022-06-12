@@ -217,7 +217,6 @@ export class RacingGame {
       { x: -1, y:  0 }, { x: 0, y:  0 }, { x: 1, y:  0 },
       { x: -1, y:  1 }, { x: 0, y:  1 }, { x: 1, y:  1 },
     ]
-      // TODO: should not hit walls along the path
       .map(
         (move, index) => {
           const cellIndex = level.findIndex(cell => (
@@ -230,6 +229,8 @@ export class RacingGame {
         move => {
           const cell = level[move.cellIndex];
           const collides = typeof cell === 'undefined' || cell?.collide;
+          // TODO: should not hit walls along the path
+          // TODO: should not hit other players directly
           return !collides;
         }
       );
@@ -315,6 +316,7 @@ export class RacingGame {
     // save next player's moves
     const nextPlayer = this.getCurrentPlayer();
     nextPlayer.moves = this.getMoves(nextPlayer);
+    console.log({ player, nextPlayer });
     if(!nextPlayer.moves.length) {
       nextPlayer.dead = true;
       return this.movePlayer({ x: 0, y: 0 }, nextPlayer);

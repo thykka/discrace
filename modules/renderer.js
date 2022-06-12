@@ -79,7 +79,6 @@ class Renderer {
     const { ctx } = this;
     const gridWidth = Math.ceil(w / 4);
     ctx.fillStyle = `hsla(${ (cell.checkpointNumber * 137.5) % 360 }, 80%, 40%, 0.3)`;
-    console.log(ctx.fillStyle);
     for(let yo = 0; yo < w; yo += gridWidth * 2) {
       for(let xo = 0; xo < w; xo += gridWidth) {
         const ys = Math.round(xo/2) % gridWidth === 0 ? 0 : gridWidth;

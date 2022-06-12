@@ -89,6 +89,7 @@ class GameClient {
       if(reply)       return message.reply({ content });
     }
     if(matchState) {
+      console.log(matchState);
       this.renderer.draw(matchState);
       this.renderer.save();
       // quick fix for file not having been saved yet
