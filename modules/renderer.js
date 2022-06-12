@@ -2,6 +2,8 @@ import { createWriteStream } from 'fs';
 import Canvas from 'canvas'
 import { rotateArray, rnd } from './utils.js';
 
+Canvas.registerFont('assets/SpaceMono-Regular.ttf', { family: 'monospace' });
+
 class Renderer {
   constructor(options) {
     const defaults = {
