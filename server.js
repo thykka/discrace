@@ -2,7 +2,7 @@ import GameClient from './modules/client.js';
 
 new GameClient({
   token: process.env.TOKEN,
-  allowedChannels: [process.env.CHANNEL],
+  allowedChannels: process.env.CHANNEL.includes(',') ? process.env.CHANNEL.split(',') : [process.env.CHANNEL],
   commands: {
     '!race': 'newGame',
     '!?': 'showGame',
